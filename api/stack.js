@@ -2,6 +2,16 @@ const Wappalyzer = require('wappalyzer')
 
 const wappalyzer = new Wappalyzer()
 
+let chrome = {};
+let puppeteer;
+
+if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
+  chrome = require("chrome-aws-lambda");
+  puppeteer = require("puppeteer-core");
+} else {
+  puppeteer = require("puppeteer");
+}
+
 module.exports = async (req, res) => {
   const { url } = req.query
   
@@ -12,6 +22,16 @@ module.exports = async (req, res) => {
   }
   
   try {
+    if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
+    options = {
+      args: [...chrome.args, "--hide-scrollbars", "--disable-web-security"],
+      defaultViewport: chrome.defaultViewport,
+      executablePath: await chrome.executablePath,
+      headless: true,
+      ignoreHTTPSErrors: true,
+    };
+  }
+    
     await wappalyzer.init()
 
     const { technologies } = await (await wappalyzer.open(url)).analyze()
