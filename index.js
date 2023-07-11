@@ -1,6 +1,6 @@
-const Wappalyzer = require('wappalyzer')
+const app = require("express")();
 
-const wappalyzer = new Wappalyzer()
+const Wappalyzer = require('wappalyzer')
 
 let chrome = {};
 let puppeteer;
@@ -12,17 +12,12 @@ if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
   puppeteer = require("puppeteer");
 }
 
-module.exports = async (req, res) => {
+app.get("/api", async (req, res) => {
   const { url } = req.query
   
-  const webValidation = /https?:\/\//g;
-  
-  if (!webValidation.test(url)) {
-    res.status(404).send('Please http:// or https:// is required')
-  }
-  
-  try {
-    if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
+  let options = {};
+
+  if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
     options = {
       args: [...chrome.args, "--hide-scrollbars", "--disable-web-security"],
       defaultViewport: chrome.defaultViewport,
@@ -31,7 +26,12 @@ module.exports = async (req, res) => {
       ignoreHTTPSErrors: true,
     };
   }
-    
+  
+  const wappalyzer = new Wappalyzer(options)
+
+  try {
+    // let browser = await puppeteer.launch(options);
+
     await wappalyzer.init()
 
     const { technologies } = await (await wappalyzer.open(url)).analyze()
@@ -56,4 +56,8 @@ module.exports = async (req, res) => {
   }
   
   await wappalyzer.destroy()
-}
+});
+
+app.listen(process.env.PORT || 3000);
+
+module.exports = app;
